@@ -1,4 +1,5 @@
 
+
 # reSTARtMETEO
 Faire revivre nos stations météo StarMétéo.
 
@@ -17,7 +18,7 @@ Pour en savoir plus sur le protocole StarMétéo, consulter le fichier [protocol
 
 ### Matériel nécessaire
 
-Vous devez posséder un Raspberry Pi 3B minimum, ainsi qu'un bout de fil electrique de 18cm qui devra être connecté sur un des ports GPIO du Raspberry.
+Vous devez posséder un Raspberry Pi 3B minimum, ainsi qu'un bout de fil electrique de 18cm qui devra être connecté sur un la sortie GPIO 4, c'est à dire sur la broche 7. Voir https://elinux.org/RPi_Low-level_peripherals#General_Purpose_Input.2FOutput_.28GPIO.29.
 
 ### Logiciels
 Vous devez avoir les programmes installées suivants sur votre Raspberry Pi :
@@ -31,7 +32,7 @@ Ces deux programmes doivent être compilés sur votre Raspberry. Si vous ne save
 ## Installation
 Connectez vous en SSH sur votre Raspberry. Clonez le repository reSTARtMETEO :
 
-    cd ~/ # par defaut, on va cloner dans le home mais ca peut etre n'importe où
+    cd ~/ # par defaut, on va cloner dans le home mais ca peut être n'importe où
     git clone https://github.com/psa-jforestier/restartmeteo/
 
 Éditez le fichier `cronmeteo.config.sh`et modifier les variables suivantes :
@@ -52,16 +53,27 @@ Afin de tester l'installation, lancer le script `cronmeteo.sh`:
 		curtime=25176D:o 68FK  8B7-G6kEVm?!I0
 		forecast=25176D:1+!.460 &     4F4 &    "4V0s&0," M4V8!&0$  '
 
-Si vous avez une erreur, rendez-vous en bas de cette page dans la section "Problèmes connus".
+Si vous avez une erreur à l'execution, rendez-vous en bas de cette page dans la section "Problèmes connus". Votre station météo ne va pas forcément ce mettre à jour ni afficher les prévisions, car elle "écoute" ces informations une fois par heure et il faut tomber au bon moment. C'est pour cela que ce script doit être executé à interval régulier.
 
-Créer une tâche planifiée sur votre Raspberry, qui doit déclencher toutes les heures a 1 minute, le script `cronmeteo.sh` . Avec une crontab, la syntaxe est :
+Créer une tâche planifiée sur votre Raspberry, qui doit déclencher toutes les heures a 1 minute le script `cronmeteo.sh` . Avec une crontab, la syntaxe est :
 
     1 * * * * cd /home/user/restartmeteo && ./cronmeteo.sh >> /home/user/restartmeteo/cronmeteo.log 2>&1
 
-Vous devez adapter le chemin  `/home/user`en fonction de l'endroit où vous avez installé reSTARtMETEO.
+Vous devez adapter le chemin  `/home/user` en fonction de l'endroit où vous avez installé reSTARtMETEO.
+
+Vous devez purger de temps en temps le fichier de log `/home/user/restartmeteo/cronmeteo.log`.
 
 Retirez les piles de votre station et remettez les, ou effectuez un RESET / RAZ.
 Au bout d'une heure maximum, votre station devrait se mettre à l'heure et les prévisions devraient s'afficher.
+
+## Fonctionnement interne
+```
+Obtention des previsions sm_forecast.py --+-> encodeur starmeteo --> rpitx "POCSAG" transmitter --> Station météo    
+ (en utilisant OpenMeteo                  |
+  ou WeatherUnderground)                  |
+                                          |
+Synchronisation horaire sm_time.py (wip) -'
+```
 
 ## Problèmes connus
 - lors de l'execution de `cronmeteo.sh`

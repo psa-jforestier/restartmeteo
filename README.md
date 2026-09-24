@@ -67,6 +67,9 @@ Retirez les piles de votre station et remettez les, ou effectuez un RESET / RAZ.
 Au bout d'une heure maximum, votre station devrait se mettre à l'heure et les prévisions devraient s'afficher.
 
 ## Fonctionnement interne
+
+L'utilisation des pipes Unix permet d'enchainer les commandes nécessaires : récupération des prévisions -> encodage au format Starmeteo -> transmission radio.
+
 ```
 Obtention des previsions sm_forecast.py --+-> encodeur starmeteo --> rpitx "POCSAG" transmitter --> Station météo    
  (en utilisant OpenMeteo                  |
@@ -75,5 +78,11 @@ Obtention des previsions sm_forecast.py --+-> encodeur starmeteo --> rpitx "POCS
 Synchronisation horaire sm_time.py (wip) -'
 ```
 
+Tout ce travail, ainsi que des infos de debug, est réalisé par le script `cronmeteo.sh`.
+
+## Reste à faire
+
+Pour l'instant, les alertes météo ne sont pas gérées.
+
 ## Problèmes connus
-- lors de l'execution de `cronmeteo.sh`
+- Aucun !

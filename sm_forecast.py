@@ -6,7 +6,7 @@ This tool generate a StarMeteo compatible message for weather forecast.
 It can use different weather forcast backend.
 
 For paris :
-python sm_forecast.py --backend om --
+python sm_forecast.py --backend om --latlong 48.8534,2.3488
 '''
 
 import argparse
@@ -20,7 +20,40 @@ from urllib.parse import urlencode
 global VERBOSE
 VERBOSE = False
 
-
+def get_weatherunderground(v, location, latlong, apikey):
+    if (latlong == location == None):
+        error("You must provide a --location or a --latlong")
+        quit(-3)
+    if (latlong == None):
+        debug(v, f"Geocoding location : {location} ...")
+        geocode = wu_geocode_location(location, apikey)
+        debug(v, f"Found location : {geocode}")
+        lat, lon, tz, place_name = geocode
+    else:
+        lat, lon = map(float, latlong.split(","))
+    debug(v, "Fetching forecast...")
+    data = wu_fetch_5day(lat, lon, tz)
+    
+def wu_fetch_5day(lat, long, tz):
+    # tz not used
+    global VERBOSE
+    # to be continued
+def wu_geocode_location(location: str, apikey:str):
+    url = f"https://api.weather.com/v3/location/search"
+    r = requests.get(url, params={
+        "apiKey": apikey, 
+        "query": location, 
+        "language": "en-US", 
+        "format": "json"
+        }, timeout=30)
+    r.raise_for_status()
+    data = r.json()
+    if not data.get("location"):
+        raise RuntimeError(f"No geocoding results for {location!r}")
+    lat = data["location"]["latitude"][0]
+    lon = data["location"]["longitude"][0]
+    return lat,lon, None, data["location"]["displayName"][0]
+    
 def om_geocode_city(city_name: str):
     url = "https://geocoding-api.open-meteo.com/v1/search"
     r = requests.get(url, params={"name": city_name, "count": 1, "language": "en", "format": "json"}, timeout=30)
@@ -33,10 +66,6 @@ def om_geocode_city(city_name: str):
 
 
 def om_fetch_5day(lat: float, lon: float, timezone: str):
-
-#    with open("data_om.json", "r", encoding="utf-8") as file:
-#        data = json.load(file)
-#        return data
 
     global VERBOSE
     url = "https://api.open-meteo.com/v1/forecast"
@@ -128,8 +157,12 @@ def om_get_encoded_rain_proba(proba):
         if proba < threshold:
             return index
     return 0xe;
-    # get from open-meteo.com
+
+# get from open-meteo.com
 def get_openmeteo(v, location, latlong):
+    if (latlong == location == None):
+        error("You must provide a --location or a --latlong")
+        quit(-3)
     if (latlong == None):
         debug(v, f"Geocoding location : {location} ...")
         geocode = om_geocode_city(location)
@@ -257,7 +290,7 @@ def main():
 
     parser.add_argument("--wu-api",
         dest="wu_api", required=False, type=str,
-        help="Weather Underground API key (required when --backend=weatherunderground).")
+        help="Weather Underground API key (required when --backend=weatherunderground). Get one from https://www.wunderground.com/member/api-keys")
 
     args = parser.parse_args()
     VERBOSE = args.verbose
@@ -286,9 +319,8 @@ def main():
     if args.backend == "weatherunderground":
         if not args.wu_api:
             error('Missing --wu-api. It is required when --backend="weatherunderground".')
-        return (1)
+            return (-1)
         debug(args.verbose, "Using Weather Underground backend.")
-
     if args.backend == "openmeteo":
         forecast = get_openmeteo(args.verbose, args.location, args.latlong)
     elif args.backend == "weatherunderground":

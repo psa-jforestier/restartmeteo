@@ -14,46 +14,186 @@ import requests
 import math
 import json
 from sm_utils import *
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from urllib.parse import urlencode
 
 global VERBOSE
 VERBOSE = False
 
-def get_weatherunderground(v, location, latlong, apikey):
+def get_openweathermap(v, location, latlong, apikey):
+    '''
+    expected returned structure :
+    [
+        {'date': 'YYYY-MM-DD', 
+         'tmin': 0, 
+         'tmax': 0, 
+         'weathercode_day': 
+            {'weather_code': 0, 'picto': 0, 'label': 'clear sky'}, 
+         'weathercode_night': 
+            {'weather_code': 0, 'picto': 24, 'label': 'clear sky'}, 
+         'rain': 0, 
+         'rain_encoded': 0, 
+         'weathercode_q0': 
+            {'weather_code': 0, 'picto': 24, 'label': 'clear sky'}, 
+         'weathercode_q1': 
+            {'weather_code': 0, 'picto': 0, 'label': 'clear sky'}, 
+         'weathercode_q2': 
+            {'weather_code': 0, 'picto': 0, 'label': 'clear sky'}, 
+         'weathercode_q3': 
+            {'weather_code': 0, 'picto': 24, 'label': 'clear sky'}
+        }
+        ,
+        {...}
+    ]
+    [{'date': '2026-09-25', 'tmin': 13, 'tmax': 27, 'weathercode_day': {'weather_code': 0, 'picto': 0, 'label': 'clear sky'}, 'weathercode_night': {'weather_code': 0, 'picto': 24, 'label': 'clear sky'}, 'rain': 0, 'rain_encoded': 0, 'weathercode_q0': {'weather_code': 0, 'picto': 24, 'label': 'clear sky'}, 'weathercode_q1': {'weather_code': 0, 'picto': 0, 'label': 'clear sky'}, 'weathercode_q2': {'weather_code': 0, 'picto': 0, 'label': 'clear sky'}, 'weathercode_q3': {'weather_code': 0, 'picto': 24, 'label': 'clear sky'}}, {'date': '2026-09-26', 'tmin': 14, 'tmax': 24, 'weathercode_day': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_night': {'weather_code': 0, 'picto': 24, 'label': 'clear sky'}, 'rain': 0, 'rain_encoded': 0, 'weathercode_q0': {'weather_code': 0, 'picto': 24, 'label': 'clear sky'}, 'weathercode_q1': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_q2': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_q3': {'weather_code': 3, 'picto': 25, 'label': 'overcast'}}, {'date': '2026-09-27', 'tmin': 13, 'tmax': 26, 'weathercode_day': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_night': {'weather_code': 3, 'picto': 25, 'label': 'overcast'}, 'rain': 1, 'rain_encoded': 0, 'weathercode_q0': {'weather_code': 3, 'picto': 25, 'label': 'overcast'}, 'weathercode_q1': {'weather_code': 2, 'picto': 2, 'label': 'partly clear'}, 'weathercode_q2': {'weather_code': 2, 'picto': 2, 'label': 'partly clear'}, 'weathercode_q3': {'weather_code': 3, 'picto': 25, 'label': 'overcast'}}, {'date': '2026-09-28', 'tmin': 17, 'tmax': 26, 'weathercode_day': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_night': {'weather_code': 2, 'picto': 25, 'label': 'partly clear'}, 'rain': 22, 'rain_encoded': 3, 'weathercode_q0': {'weather_code': 2, 'picto': 25, 'label': 'partly clear'}, 'weathercode_q1': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_q2': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_q3': {'weather_code': 3, 'picto': 25, 'label': 'overcast'}}, {'date': '2026-09-29', 'tmin': 16, 'tmax': 30, 'weathercode_day': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_night': {'weather_code': 3, 'picto': 25, 'label': 'overcast'}, 'rain': 5, 'rain_encoded': 1, 'weathercode_q0': {'weather_code': 3, 'picto': 25, 'label': 'overcast'}, 'weathercode_q1': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_q2': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_q3': {'weather_code': 2, 'picto': 25, 'label': 'partly clear'}}, {'date': '2026-09-30', 'tmin': 18, 'tmax': 24, 'weathercode_day': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_night': {'weather_code': 3, 'picto': 25, 'label': 'overcast'}, 'rain': 14, 'rain_encoded': 2, 'weathercode_q0': {'weather_code': 3, 'picto': 25, 'label': 'overcast'}, 'weathercode_q1': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_q2': {'weather_code': 3, 'picto': 3, 'label': 'overcast'}, 'weathercode_q3': {'weather_code': 2, 'picto': 25, 'label': 'partly clear'}}]
+    '''
     if (latlong == location == None):
         error("You must provide a --location or a --latlong")
         quit(-3)
     if (latlong == None):
         debug(v, f"Geocoding location : {location} ...")
-        geocode = wu_geocode_location(location, apikey)
+        geocode = ow_geocode_location(location, apikey)
         debug(v, f"Found location : {geocode}")
         lat, lon, tz, place_name = geocode
     else:
         lat, lon = map(float, latlong.split(","))
-    debug(v, "Fetching forecast...")
-    data = wu_fetch_5day(lat, lon, tz)
+        tz = None
     
-def wu_fetch_5day(lat, long, tz):
-    # tz not used
+    debug(v, "Fetching forecast...")
+    data = ow_fetch_5day(lat, lon, tz, apikey)
+    timezone = data.get("city", {}).get("timezone")
+    days = {}
+    first_date = str(datetime.fromtimestamp(data.get("list", [])[0].get("dt"), UTC).astimezone().date()) if data.get("list") else None
+    tmin = [99,99,99,99,99,99]
+    tmax = [-99,-99,-99,-99,-99,-99]
+    iconday = [None, None, None, None, None, None]
+    iconnight = [None, None, None, None, None, None]
+    iconq0 = [None, None, None, None, None, None]
+    iconq1 = [None, None, None, None, None, None]
+    iconq2 = [None, None, None, None, None, None]
+    iconq3 = [None, None, None, None, None, None]
+    pops = [0, 0, 0, 0, 0, 0] # probability of precipitation
+    rain_encoded = [0, 0, 0, 0, 0, 0]
+    dates = [None, None, None, None, None, None]
+    for forecast in data.get("list", []):
+        
+        dt = forecast.get("dt")
+        # convert the UTC unix timestamp to a local datetime object
+        dt_utc = datetime.fromtimestamp(dt, UTC)
+        dt_local = dt_utc.astimezone()
+        date = str(dt_local.date())
+        hour = dt_local.hour
+        elapsed_days = (dt_local.date() - datetime.fromisoformat(first_date).date()).days if first_date else None
+        temp = forecast.get("main", {}).get("temp")
+        temp_min = forecast.get("main", {}).get("temp_min")
+        temp_max = forecast.get("main", {}).get("temp_max")
+        pod = forecast.get("sys", {}).get("pod") # part of the day (n = night, d = day)
+        weather = forecast.get("weather", [{}])[0]
+        pop = 100 * forecast.get("pop") # probability of precipitation
+        # pop is based on the highest value of all the quarter of the day
+        pops[elapsed_days] = max(pops[elapsed_days], pop)
+        rain_encoded[elapsed_days] = om_get_encoded_rain_proba(pop)
+        weather["label"] = weather.get("description", "")
+        weather["picto"] = ow_get_pictogram_index_from_code(weather.get("id", 0), pod == "d")        
+        quarter = hour // 6
+        previ = [hour, temp_min, temp_max, weather,pop, rain_encoded[elapsed_days], pod, quarter]
+        #print(previ)
+        if elapsed_days not in days:
+            days[elapsed_days] = [previ]
+            dates[elapsed_days] = dt_local.strftime("%Y-%m-%d")
+        else:
+            days[elapsed_days].append(previ)
+
+        tmin[elapsed_days] = math.floor(min(tmin[elapsed_days], temp_min))
+        tmax[elapsed_days] = math.ceil(max(tmax[elapsed_days], temp_max))
+
+        if pod == "d":
+            if iconday[elapsed_days] is None or iconday[elapsed_days].get("id", 999) > weather.get("id", 999):
+                iconday[elapsed_days] = weather
+        elif pod == "n":
+            if iconnight[elapsed_days] is None or iconnight[elapsed_days].get("id", 999) > weather.get("id", 999):
+                iconnight[elapsed_days] = weather
+        '''
+        if iconday[elapsed_days] is None:
+            iconday[elapsed_days] = weather
+        else:
+            # complicated logic here. a day has up to 8 forecast.
+            # what is the good icon ?
+            # arbitrary, take the min weather code (assuming lower code is more severe)
+            if iconday[elapsed_days].get("id", 999) > weather.get("id", 999):
+                iconday[elapsed_days] = weather
+        '''
+        # forecast icon for quarter
+        # arbitrary, take the min weather code too
+        if quarter == 0: # night
+            if iconq0[elapsed_days] is None or iconq0[elapsed_days].get("id", 999) > weather.get("id", 999):
+                iconnight[elapsed_days] = weather
+            else:
+                iconnight[elapsed_days] = weather
+        elif quarter == 1: # morning
+            if iconq1[elapsed_days] is None or iconq1[elapsed_days].get("id", 999) > weather.get("id", 999):
+                iconq1[elapsed_days] = weather
+            else:
+                iconq1[elapsed_days] = weather
+        elif quarter == 2: # afternoon
+            if iconq2[elapsed_days] is None or iconq2[elapsed_days].get("id", 999) > weather.get("id", 999):
+                iconq2[elapsed_days] = weather
+            else:
+                iconq2[elapsed_days] = weather
+        elif quarter == 3: # evening
+            if iconq3[elapsed_days] is None or iconq3[elapsed_days].get("id", 999) > weather.get("id", 999):
+                iconq3[elapsed_days] = weather
+            else:
+                iconq3[elapsed_days] = weather
+
+    data = []
+    for i in range(len(dates)):
+        day_data = {
+            "date": dates[i],
+            "tmin": tmin[i],
+            "tmax": tmax[i],
+            "weathercode_day": iconnight[i] or iconday[i],
+            "weathercode_night": iconnight[i],
+            "weathercode_q0": iconq0[i] or iconq1[i] or iconq2[i] or iconq3[i],
+            "weathercode_q1": iconq1[i] or iconq2[i] or iconq3[i],
+            "weathercode_q2": iconq2[i] or iconq3[i],
+            "weathercode_q3": iconq3[i],
+            "rain": pops[i],
+            "rain_encoded": rain_encoded[i]
+        }
+        data.append(day_data)
+ 
+
+
+    return data
+
+
+
+def ow_fetch_5day(lat: float, lon: float, timezone: str, apikey: str):
     global VERBOSE
-    # to be continued
-def wu_geocode_location(location: str, apikey:str):
-    url = f"https://api.weather.com/v3/location/search"
-    r = requests.get(url, params={
-        "apiKey": apikey, 
-        "query": location, 
-        "language": "en-US", 
-        "format": "json"
-        }, timeout=30)
+    url = "https://api.openweathermap.org/data/2.5/forecast"
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "appid": apikey,
+        "units": "metric"
+    }
+    debug(VERBOSE, "URL   : " + url)
+    debug(VERBOSE, "Param : " + urlencode(params))
+    r = requests.get(url, params=params, timeout=30)
     r.raise_for_status()
     data = r.json()
-    if not data.get("location"):
+    return data
+def ow_geocode_location(location: str, apikey: str):
+    url = "https://api.openweathermap.org/geo/1.0/direct"
+    r = requests.get(url, params={"q": location, "limit": 1, "appid": apikey}, timeout=30)
+    r.raise_for_status()
+    data = r.json()
+    if not data:
         raise RuntimeError(f"No geocoding results for {location!r}")
-    lat = data["location"]["latitude"][0]
-    lon = data["location"]["longitude"][0]
-    return lat,lon, None, data["location"]["displayName"][0]
-    
+    best = data[0]
+    return best["lat"], best["lon"], best.get("timezone"), best.get("name")
+
 def om_geocode_city(city_name: str):
     url = "https://geocoding-api.open-meteo.com/v1/search"
     r = requests.get(url, params={"name": city_name, "count": 1, "language": "en", "format": "json"}, timeout=30)
@@ -66,7 +206,6 @@ def om_geocode_city(city_name: str):
 
 
 def om_fetch_5day(lat: float, lon: float, timezone: str):
-
     global VERBOSE
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
@@ -100,8 +239,85 @@ def om_fetch_5day(lat: float, lon: float, timezone: str):
     data = r.json()
 #    with open("data_om.json", "w", encoding="utf-8") as file:
 #        json.dump(data, file, indent=2, ensure_ascii=False)
+    
     return data
 
+global OWM_CODE_LOOKUP
+OWM_CODE_LOOKUP = {
+    ## see https://openweathermap.org/api/weather-conditions#Weather-Condition-Codes-2
+    ## owm_code => [ icon day, icon night, label ]
+    200: [0x0A, 0x1D, "thunderstorm with light rain"],
+    201: [0x0B, 0x1E, "thunderstorm with rain"],
+    202: [0x0B, 0x1E, "thunderstorm with heavy rain"],
+    210: [0x0D, 0x1F, "light thunderstorm"],
+    211: [0x0C, 0x1F, "thunderstorm"],
+    212: [0x0C, 0x1F, "heavy thunderstorm"],
+    221: [0x0C, 0x1F, "ragged thunderstorm"],
+    230: [0x0A, 0x1D, "thunderstorm with light drizzle"],
+    231: [0x0B, 0x1E, "thunderstorm with drizzle"],
+    232: [0x0C, 0x1F, "thunderstorm with heavy drizzle"],
+
+    300: [0x04, 0x1A, "light intensity drizzle"],
+    301: [0x04, 0x1A, "drizzle"],
+    302: [0x05, 0x5B, "heavy intensity drizzle"],
+    310: [0x05, 0x5B, "light intensity drizzle rain"],
+    311: [0x05, 0x5B, "drizzle rain"],
+    312: [0x05, 0x5B, "heavy intensity drizzle rain"],
+    313: [0x05, 0x1B, "shower rain and drizzle"],
+    314: [0x06, 0x1C, "heavy shower rain and drizzle"],
+    321: [0x06, 0x1C, "shower drizzle"],
+
+    500: [0x07, 0x1A, "light rain"],
+    501: [0x08, 0x1B, "moderate rain"],
+    502: [0x06, 0x1C, "heavy rain"],
+    503: [0x09, 0x1C, "very heavy rain"],
+    504: [0x06, 0x1C, "extreme rain"],
+    511: [0x87, 0x20, "freezing rain"],
+    520: [0x47, 0x5B, "light intensity shower rain"],
+    521: [0x46, 0x1C, "shower rain"],
+    522: [0x46, 0x1C, "heavy intensity shower rain"],
+    531: [0x46, 0x1C, "ragged shower rain"],
+
+    600: [0x12, 0x20, "light snow"],
+    601: [0x50, 0x20, "moderate snow"],
+    602: [0x91, 0x21, "heavy snow"],
+    611: [0x14, 0x20, "sleet"],
+    612: [0x14, 0x20, "shower sleet"],
+    615: [0x10, 0x20, "light rain and snow"],
+    616: [0x50, 0x20, "moderate rain and snow"],
+    620: [0x12, 0x20, "light shower snow"],
+    621: [0x13, 0x22, "moderate shower snow"],
+    622: [0x11, 0x23, "heavy shower snow"],
+
+    700: [0x83, 0x59, "mist"],
+    701: [0x83, 0x59, "smoke"],
+    711: [0x83, 0x59, "haze"],
+    721: [0x83, 0x59, "sand/dust whirls"],
+    731: [0x83, 0x59, "sandstorm"],
+    741: [0x83, 0x99, "fog"],
+    751: [0x83, 0x99, "sand"],
+    761: [0x83, 0x99, "dust"],
+    762: [0x83, 0x99, "volcanic ash"],
+    771: [0x83, 0x99, "squalls"],
+    781: [0x83, 0x99, "tornado"],
+
+    800: [0x00, 0x18, "clear sky"],
+    801: [0x00, 0x18, "few clouds"],
+    802: [0x01, 0x19, "scattered clouds"],
+    803: [0x02, 0x99, "broken clouds"],
+    804: [0x03, 0x99, "overcast clouds"],
+ 
+}
+def ow_get_pictogram_index_from_code(ow_code: int, is_day: bool) -> int:
+    p = OWM_CODE_LOOKUP.get(ow_code, [0x02, 0x19, "unkown"]);
+    if is_day == True:
+        return p[0]
+    else:
+        return p[1]
+
+def ow_get_label_from_code(ow_code: int):
+    p = OWM_CODE_LOOKUP.get(ow_code, [0x02, 0x19, "unkown"]);
+    return p[2]
 
 global WMO_CODE_LOOKUP
 WMO_CODE_LOOKUP = {
@@ -139,7 +355,7 @@ WMO_CODE_LOOKUP = {
 
 
 def om_get_pictogram_index_from_code(wmo_code: int, is_day: bool) -> int:
-    p = WMO_CODE_LOOKUP.get(wmo_code, [0x16, 0x22, "unkown"]);
+    p = WMO_CODE_LOOKUP.get(wmo_code, [0x02, 0x19, "unkown"]);
     if is_day == True:
         return p[0]
     else:
@@ -152,7 +368,10 @@ def om_get_label_from_code(wmo_code: int):
 
 
 def om_get_encoded_rain_proba(proba):
-    thresholds = [2.5, 7.5, 15, 22.5, 27.5, 35, 45, 55, 65, 72.5, 77.5, 85, 92.5, 97];
+    thresholds = [ 2.5,  7.5, 15,   22.5, 
+                  27.5, 35,   45,   55, 
+                  65,   72.5, 77.5, 85, 
+                  92.5, 97];
     for index, threshold in enumerate(thresholds):
         if proba < threshold:
             return index
@@ -253,7 +472,7 @@ def get_openmeteo(v, location, latlong):
             'picto': om_get_pictogram_index_from_code(wco_q3, False),
             'label': om_get_label_from_code(wco_q3)
         }
-        
+
     return forecast
 
 
@@ -264,8 +483,8 @@ def main():
         help="Enable debug output")
 
     parser.add_argument("--backend", "-b",
-        help="Indicates which weather forecast backend to use. Can be \"openmeteo\", \"weatherunderground\", or \"none\" or \"file\" followed by a file path.",
-        #choices=["weatherunderground", "wu", "openmeteo", "om", "file", "none"],
+        help="Indicates which weather forecast backend to use. Can be "
+            "openmeteo, om, openweathermap, ow, none or (file followed by a file path)",
         nargs="+", # one or two value (for file backend)
         metavar=("BACKEND", "FILE"),
         default="none"
@@ -288,9 +507,9 @@ def main():
         default="starmeteo"
     )
 
-    parser.add_argument("--wu-api",
-        dest="wu_api", required=False, type=str,
-        help="Weather Underground API key (required when --backend=weatherunderground). Get one from https://www.wunderground.com/member/api-keys")
+    parser.add_argument("--apikey",
+        dest="apikey", required=False, type=str,
+        help="Weather provider API key (required when --backend=weatherunderground or Accuweather). Get one from https://www.wunderground.com/member/api-keys")
 
     args = parser.parse_args()
     VERBOSE = args.verbose
@@ -303,28 +522,27 @@ def main():
     elif len(args.backend) != 1:
         parser.error("a file path is only valid with the file backend")
     elif args.backend[0] not in {
-        "weatherunderground",
-        "wu",
-        "openmeteo",
-        "om",
+        "openmeteo", "om",
+        "openweathermap", "ow",
         "none",
     }:
         parser.error(f"invalid backend: {args.backend[0]}")   
     else:
         args.backend = args.backend[0]
-    if args.backend == "wu":
-        args.backend = "weatherunderground"
     if args.backend == "om":
         args.backend = "openmeteo"
-    if args.backend == "weatherunderground":
-        if not args.wu_api:
-            error('Missing --wu-api. It is required when --backend="weatherunderground".')
+    if args.backend == "ow":
+        args.backend = "openweathermap"
+    
+    if args.backend == "openweathermap":
+        if not args.apikey:
+            error('Missing --apikey. It is required when --backend="openweathermap".')
             return (-1)
-        debug(args.verbose, "Using Weather Underground backend.")
+    debug(args.verbose, "Using backend : " + args.backend)
     if args.backend == "openmeteo":
         forecast = get_openmeteo(args.verbose, args.location, args.latlong)
-    elif args.backend == "weatherunderground":
-        forecast = get_weatherunderground(args.verbose, args.location, args.latlong, args.wu_api)
+    elif args.backend == "openweathermap":
+        forecast = get_openweathermap(args.verbose, args.location, args.latlong, args.apikey)
     elif args.backend == "none":
         forecast = get_local_forecast(args.verbose, args)
     elif args.backend == "file":
@@ -343,7 +561,7 @@ def main():
     elif (args.output == "txt"):
         print("== FORECAST ==")
         for i in forecast:
-            print('== ',i['date'])
+            print('== ',i['date'])        
             print(f"    T min : {i['tmin']:+03d} | T max : {i['tmax']:+03d}")
             print(f"    Day   : {i['weathercode_day']['label']:<16} | Night : {i['weathercode_night']['label']:<16}   | Rain : {i['rain']}")
             print(f"    Night : {i['weathercode_q0']['label']:<16} | Morning : {i['weathercode_q1']['label']:<16} | Afternoon : {i['weathercode_q2']['label']:<16} | Evening : {i['weathercode_q3']['label']:<16} " )

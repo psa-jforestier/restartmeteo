@@ -2,7 +2,7 @@
 export STARMETEO_AREA=75
 
 # Your latitude and longitude coordinate
-export STARMETEO_LATLONG=48.8529,2.3445
+export STARMETEO_LATLONG=48.8534,2.3488
 
 ###############
 # Change this only if you know what your are doing :
@@ -15,6 +15,6 @@ export STARMETEO_FREQ=466205000
 export STARMETEO_TMP=/tmp.ram/prev.json
 
 # The backend for weather forecast. Default is "openmeteo"
-# can be : "weatherunderground --wu-api=1234"
+# can be : "openweathermap --api=1234"
 export STARMETEO_BACKEND=openmeteo
 

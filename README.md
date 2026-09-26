@@ -73,12 +73,40 @@ L'utilisation des pipes Unix permet d'enchainer les commandes nécessaires : ré
 ```
 Obtention des previsions sm_forecast.py --+-> encodeur starmeteo --> rpitx "POCSAG" transmitter --> Station météo    
  (en utilisant OpenMeteo                  |
-  ou WeatherUnderground)                  |
+  ou OpenWeatherMap)                      |
                                           |
 Synchronisation horaire sm_time.py (wip) -'
 ```
 
 Tout ce travail, ainsi que des infos de debug, est réalisé par le script `cronmeteo.sh`.
+
+## Services de prevision
+
+Les prévisions de reSTARtMETEO peuvent provenir de n'importe quel service de prévision météo, du moment qu'il supporte les fonctionalités suivantes :
+- Geolocation : pouvoir transformer un nom de lieu ("Paris, France"), en coordonées latitude / longitude (48.8534,2.3488)
+- Prévisions jour en cours : prévisions (ou historique) du jour en cours, et sur toute la journée, notemment :  température minimum et maximum sur le jour, tendance sur la journée et la nuit (pluie, nuage, soleil) 
+- Prévisions 5 journées suivantes, par quart de journée : température minimum et maximum sur le jour, tendance par sur la journée et la nuit (pluie, nuage, soleil), probabilité de pluie.
+
+Les services météo suivants fonctionnent :
+- [Open Meteo](https://open-meteo.com/) : gratuit, très bonnes prévisions. C'est le service privilégié à utiliser.
+- [Open Weather Map](https://openweathermap.org/) : gratuit, mais nécéssite un enregistrement pour avoir une clé d'API.
+
+Pour changer le service de prévision, modifier le fichier `cronmeteo.config.sh`.
+
+## Mode DEBUG des stations météo
+
+Certaines stations météo La Crosse Technologies (WD9541, WD6006) possède un mode debug. Pour entrer dedans :
+- maintenez appuyer la touche SET jusqu'à l'affichage de DEPT
+- maintenez appuyer la touche + et la touche SET une seconde, jusqu'à ce que l'afficheur change.
+
+L'afficheur contient alors :
+- la date et heure en haut à gauche
+- un affichage clignotant entre 00 et 80 en haut à droite (signification iconnue)
+- en bas à gauche dans les prévisions J+1, on trouve un indicateur de force de recepetion du signal POCSAG sur 466,205MHz. En cas de reception d'un signal sur cette fréquence, le nombre augmente.
+- sur la prévision J+2, on trouve le nombre de paquet POCSAG décodé (même ceux qui ne sont pas destiné à la station, avec un RIC différent de 25176)
+- sur la prévision J+3, on trouve un compteur qui semble s'incrémenter à chaque trame POCSAGE de type Tone Only.
+
+En mode debug, la station ne se synchronise pas. Mais quand on sort de ce mode (appui sur la touche SET), la station se remet en mode "écoute" et va recevoir les prochaines prévisions ou synchonisation horaire sans attendre le début de la prochaine heure.
 
 ## Reste à faire
 

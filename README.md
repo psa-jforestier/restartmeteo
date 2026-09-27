@@ -38,6 +38,7 @@ Connectez vous en SSH sur votre Raspberry. Clonez le repository reSTARtMETEO :
 Éditez le fichier `cronmeteo.config.sh`et modifier les variables suivantes :
 - STARMETEO_AREA : numéro du département où recevoir les prévisions (par défaut, 75 pour le département de Paris)
 - STARMETEO_LATLONG : la latitude et la longitude de l'endroit ou vous souhaitez recevoir les prévisions (oui, c'est redondant avec le numéro du département, c'est comme ca). Format : 48.8529,2.3445 (latitude - virgule - longitude)
+- STARMETEO_TMP : chemin vers un dossier temporaire, de préférence en RAM plutot que sur la carte SD du raspberry
 
 Afin de tester l'installation, lancer le script `cronmeteo.sh`:
 
@@ -55,9 +56,13 @@ Afin de tester l'installation, lancer le script `cronmeteo.sh`:
 
 Si vous avez une erreur à l'execution, rendez-vous en bas de cette page dans la section "Problèmes connus". Votre station météo ne va pas forcément ce mettre à jour ni afficher les prévisions, car elle "écoute" ces informations une fois par heure et il faut tomber au bon moment. C'est pour cela que ce script doit être executé à interval régulier.
 
+### Tache planifiée
+
 Créer une tâche planifiée sur votre Raspberry, qui doit déclencher toutes les heures a 1 minute le script `cronmeteo.sh` . Avec une crontab, la syntaxe est :
 
     1 * * * * cd /home/user/restartmeteo && ./cronmeteo.sh >> /home/user/restartmeteo/cronmeteo.log 2>&1
+	
+Pour créer cette tâche, utilisez la commande `crontab -e`.
 
 Vous devez adapter le chemin  `/home/user` en fonction de l'endroit où vous avez installé reSTARtMETEO.
 
@@ -113,4 +118,4 @@ En mode debug, la station ne se synchronise pas. Mais quand on sort de ce mode (
 Pour l'instant, les alertes météo ne sont pas gérées.
 
 ## Problèmes connus
-- Aucun !
+- binaire starmeteo renvoit "file not found" : la version du programme starmeteo dans le répertoire `bin` n'est peut etre pas compatible avec votre version de Raspberry. Dans ce cas, vous devez recompiler les [rf-tools à partir des sources](https://github.com/jfdelnero/rf-tools/) et remplacer le binaire initiale de `bin` par celui issu de la compilation. De même pour Rpitx, vous devrez probablement le [recompiler à partir des sources](https://github.com/F5OEO/rpitx).

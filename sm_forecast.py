@@ -68,10 +68,11 @@ def get_openweathermap(v, location, latlong, apikey):
     tmax = [-99,-99,-99,-99,-99,-99]
     iconday = [None, None, None, None, None, None]
     iconnight = [None, None, None, None, None, None]
+    emptyicon = {"id": 999, "label": "", "picto": 0}
     iconq0 = [None, None, None, None, None, None]
     iconq1 = [None, None, None, None, None, None]
     iconq2 = [None, None, None, None, None, None]
-    iconq3 = [None, None, None, None, None, None]
+    iconq3 = [emptyicon] * 6
     pops = [0, 0, 0, 0, 0, 0] # probability of precipitation
     rain_encoded = [0, 0, 0, 0, 0, 0]
     dates = [None, None, None, None, None, None]

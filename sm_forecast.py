@@ -14,12 +14,12 @@ import requests
 import math
 import json
 from sm_utils import *
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 global VERBOSE
 VERBOSE = False
-
+UTC = timezone.utc
 def get_openweathermap(v, location, latlong, apikey):
     '''
     expected returned structure :

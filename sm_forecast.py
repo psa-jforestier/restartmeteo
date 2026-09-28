@@ -96,6 +96,7 @@ def get_openweathermap(v, location, latlong, apikey):
         rain_encoded[elapsed_days] = om_get_encoded_rain_proba(pop)
         weather["label"] = weather.get("description", "")
         weather["picto"] = ow_get_pictogram_index_from_code(weather.get("id", 0), pod == "d")        
+        weather["weather_code"] = weather.get("id", 0)
         quarter = hour // 6
         previ = [hour, temp_min, temp_max, weather,pop, rain_encoded[elapsed_days], pod, quarter]
         #print(previ)

@@ -13,9 +13,9 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PATH=$PATH:$SCRIPT_DIR/bin
 
 ## Save forcast in a tmp file
-python3 sm_forecast.py --backend $STARMETEO_BACKEND --latlong $STARMETEO_LATLONG --days 5 --output json > $STARMETEO_TMP
+python3 sm_forecast.py --backend $STARMETEO_BACKEND --latlong $STARMETEO_LATLONG --days 6 --output json > $STARMETEO_TMP
 ## Generate a readable forcast
-python3 sm_forecast.py --backend file $STARMETEO_TMP --days 5 --output txt
+python3 sm_forecast.py --backend file $STARMETEO_TMP --days 6 --output txt
 ## Generate forcast for starmeteo
 prev=$(python3 sm_forecast.py --backend file $STARMETEO_TMP --output starmeteo)
 sm_format=$(starmeteo $prev -areaid:$STARMETEO_AREA -quiet -rpitx)

@@ -15,6 +15,6 @@ export STARMETEO_FREQ=466205000
 export STARMETEO_TMP=/tmp.ram/prev.json
 
 # The backend for weather forecast. Default is "openmeteo"
-# can be : "openweathermap --api=1234"
+# can be : "openweathermap --apikey=1234"
 export STARMETEO_BACKEND=openmeteo
 

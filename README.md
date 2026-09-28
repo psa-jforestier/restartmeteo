@@ -93,8 +93,8 @@ Les prévisions de reSTARtMETEO peuvent provenir de n'importe quel service de pr
 - Prévisions 5 journées suivantes, par quart de journée : température minimum et maximum sur le jour, tendance par sur la journée et la nuit (pluie, nuage, soleil), probabilité de pluie.
 
 Les services météo suivants fonctionnent :
-- [Open Meteo](https://open-meteo.com/) : gratuit, très bonnes prévisions. C'est le service privilégié à utiliser.
-- [Open Weather Map](https://openweathermap.org/) : gratuit, mais nécéssite un enregistrement pour avoir une clé d'API.
+- [Open Meteo](https://open-meteo.com/) : gratuit, très bonnes prévisions. C'est le service privilégié à utiliser, il permet d'avoir les prévisions jusqu'à 5 jours.
+- [Open Weather Map](https://openweathermap.org/) : gratuit, mais nécéssite un enregistrement pour avoir une clé d'API. Ne permet les prévisions que jusqu'à 4 jours.
 
 Pour changer le service de prévision, modifier le fichier `cronmeteo.config.sh`.
 

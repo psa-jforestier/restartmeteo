@@ -7,6 +7,29 @@ def debug(verbose: bool, msg: str):
 def error(msg: str):
     print(f"[ERROR] {msg}", file=sys.stderr)
 
+def bitset(data:bytearray , position: int, value: int, bitlenght:int) -> None:
+    # copy bitlenght bit from value at position position in the data array of bytes
+    # modify data in place
+    mask = (1 << bitlenght) - 1
+    value &= mask
+    for i in range(bitlenght):
+        if position + i < len(data) * 8:
+            byte_index = (position + i) // 8
+            bit_index = 7 - ((position + i) % 8)
+            data[byte_index] &= ~(1 << bit_index)
+            data[byte_index] |= ((value >> (bitlenght - 1 - i)) & 1) << bit_index
+
+def raw2char(r:int) -> str:
+    """
+    Convert a 6-bit raw value to its corresponding POCSAG character.
+    """
+    if 59 <= r <= 63:
+        return chr(ord('k') + (r - 59))
+    if r == 0x20:
+        return 'p'
+    if r == 0x03:
+        return 's'
+    return chr(r + 0x20)
 def char2raw(c):
     """
     Convert a POCSAG character to its 6-bit raw value.
@@ -51,7 +74,7 @@ def dumpbin(data, blocksize=16, bitpack=8):
 def dumphex(data, blocksize=16):
     if isinstance(data, str):
         raw = data.encode("latin1")
-    else:
+    else:        
         raw = bytes(data)
 
     for offset in range(0, len(raw), blocksize):

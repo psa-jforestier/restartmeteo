@@ -9,13 +9,79 @@ import argparse
 from sm_utils import *
 from datetime import datetime
 
+import sm_utils
+
 
 
     
-def sm_encode_datetime(dt):
-  # TODO
-  return dt.strftime("%Y-%m-%d_%H:%M:%S")
+def sm_encode_datetime(dt, area=["75"], verbose=False):
+  hour = dt.hour
+  minute = dt.minute
+  year = dt.year
+  month = dt.month # 1..12
+  day = dt.day # 1..31
+
+  # Prepare nibble array. At least 11 nibbles are needed.
+
+  nibbles = [0x00] * 9
+  nibbles[0] = 0x0f # frame identifier
+  # Hour
+  if (hour < 10):
+      nibbles[1] = hour
+      nibbles[2] = minute // 10
+      nibbles[3] = minute % 10
+  elif (hour >= 10 and hour <= 19):
+      nibbles[1] = hour - 10
+      nibbles[2] = (minute // 10) + 10
+      nibbles[3] = minute % 10
+  else: # 20..23
+      nibbles[1] = hour - 10
+      nibbles[2] = (minute // 10)
+      nibbles[3] = minute % 10
+  # Minute tenth
+  #nibbles[2] = minute // 10
+  # Minute unit
+  #nibbles[3] = minute % 10 
+  # Month
+  nibbles[4] = month
+  # day tenths in bits 0 and 1 of nibble 5
+  day_t = day // 10 
+  day_u = day % 10
+  nibbles[5] = ((day_t & 0x03) << 2 ) | ((day_u >> 2) &0x03)
+  nibbles[6] = (day_u & 0x03) << 2
+  yearoffset = year - 2000
+  nibbles[6] |= ((yearoffset) >> 4 ) &0x03
+  nibbles[7] = yearoffset & 0x0F
+  # crc
+  sum = 0x07
+  for i in range(0,8):
+    sum = sum + nibbles[i]
+  nibbles[8] = sum & 0x0f
   
+  if (verbose) :
+   sm_utils.debug(verbose, f"Nibbles: {nibbles}")
+   sm_utils.dumphex(nibbles, 16)
+   sm_utils.dumpbin(nibbles, 16, 8)
+  # We now have 9 nibbles representing the encoded datetime
+  # 9 x 4 = 36 bits.
+  # Convert them into 6 bits (36 / 6 = 6 bytes)
+  bytes = [0x00] * 6
+  for i in range(0,36): # browse all 36 bits of the nibbles
+    byte_index = i // 6
+    bit_index = i % 6
+    nibble_index = i // 4
+    bit_in_nibble = i % 4
+    bit_value = (nibbles[nibble_index] >> (3 - bit_in_nibble)) & 0x01
+    bytes[byte_index] |= bit_value << (5 - bit_index)
+     
+  if (verbose):
+    sm_utils.debug(verbose, f"Encoded 6bits: {bytes}")
+    sm_utils.dumphex(bytes, 16)
+    sm_utils.dumpbin(bytes, 16, 8)
+  # Encode bytes by using the StarMeteo ASCII encoding
+  ascii = ''.join(raw2char(b) for b in bytes)
+  sm_utils.debug(verbose,f"Encoded ASCII: {ascii}")
+  return ascii
 
     
 def decode(verbose, data):

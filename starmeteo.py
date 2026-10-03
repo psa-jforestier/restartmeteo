@@ -15,7 +15,9 @@ _USE_CURRENT_TIME = object()
 
 
 def parse_datetime(value):
-    for date_format in ("%Y-%m-%d:%H:%M", "%Y-%m-%d:%H:%M:%S", "%Y-%m-%d %H:%M"):
+    for date_format in ("%Y-%m-%d:%H:%M", 
+                        "%Y-%m-%d:%H:%M:%S", 
+                        "%Y-%m-%d %H:%M"):
         try:
             return datetime.strptime(value, date_format)
         except ValueError:

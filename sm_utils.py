@@ -1,5 +1,6 @@
 import sys
-import sm_time
+
+
 
 
 def debug(verbose: bool, msg: str):
@@ -170,7 +171,15 @@ class BitField:
             for i in range(0, self.length)
         )
     
-        
+def sm_crcN(data: BitField, idxN:int, lengthN:int) -> int:
+    """
+    Compute the Starmeteo 4 bits crc for the given nibble index and length in nibbles.
+    """
+    crc = 0x07
+    for i in range(0,lengthN):
+        crc = crc + data.getN(idxN + i)
+    crc = crc & 0x0f
+    return crc
 def asciitobit(ascii: str) -> BitField:
     """
     Convert a StarMeteo ASCII encoded string into a BitField.
@@ -290,6 +299,25 @@ def decode(verbose, data):
     frame_identifier = bits.getN(0)
     print(f"Frame identifier: 0x{frame_identifier:0x}")
     if (frame_identifier == 0xf):
+        import sm_time
+
         sm_time.sm_decode_datetime(verbose, bits)
+    elif (frame_identifier == 0x4):
+        import sm_forecast
+        sm_forecast.sm_decode_forecast(verbose, bits)
+        pass
+    else:
+        print(" └ Unknown frame identifier. Attempt decoding (after frame identifier)")
+        print("   ├ Bit stream: "+str(bits)[4:])
+        print("   └ Per nibbles:")
+        # print bit data, after the identifier, by nibbles
+        for i in range(1, (bits.length + 3) // 4):
+            nibble = bits.getN(i)
+            print(f"Nibble {i:02}: 0x{nibble:01x} 0b{nibble:04b}")
+        print("   └ Per bytes :")
+        nb_bytes = (bits.length - 4 ) // 8
+        for i in range(nb_bytes):
+            b = bits.get(4 + i*8, 8)
+            print(f"Byte {i:02}: 0x{b:02x} 0b{b:08b}")
     return
     

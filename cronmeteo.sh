@@ -11,11 +11,12 @@ fi
 # add the bin/ dir into the path, so we are sure the rpitx and starmeteo exe are accessibles
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PATH=$PATH:$SCRIPT_DIR/bin
-
+# Days to get forecast (0 is today)
+DAYS=5
 ## Save forcast in a tmp file
-python3 forecast.py --backend $STARMETEO_BACKEND --latlong $STARMETEO_LATLONG --days 6 --output json > $STARMETEO_TMP
+python3 forecast.py --backend $STARMETEO_BACKEND --latlong $STARMETEO_LATLONG --days $DAYS --output json > $STARMETEO_TMP
 ## Generate a readable forcast
-python3 forecast.py --backend file $STARMETEO_TMP --days 6 --output txt
+python3 forecast.py --backend file $STARMETEO_TMP --days $DAYS --output txt
 ## Generate forcast for starmeteo
 prev=$(python3 forecast.py --backend file $STARMETEO_TMP --output starmeteo)
 sm_format=$(starmeteo $prev -areaid:$STARMETEO_AREA -quiet -rpitx)

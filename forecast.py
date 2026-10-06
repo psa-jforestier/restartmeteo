@@ -579,7 +579,8 @@ def main():
                 f"-forecast:{i['tmin']},{i['tmax']},"
                 f"{i['weathercode_day']['picto']:#x},"
                 f"{i['weathercode_q0']['picto']:#x},{i['weathercode_q1']['picto']:#x},"
-                f"{i['weathercode_q2']['picto']:#x},{i['weathercode_q3']['picto']:#x}"
+                f"{i['weathercode_q2']['picto']:#x},{i['weathercode_q3']['picto']:#x},"
+                f"{i['rain']}"
              ) + " "
         print(smout)
 if __name__ == "__main__":
@@ -587,8 +588,8 @@ if __name__ == "__main__":
 '''
 0x01 : nuage clair et soleil clar
 0x4c : gros nuage de pluie
-./starmeteo -forecast:-10,40,0x4c,0x1,0x1,0x1,0x1 
-                       1  2  3    5   5   6   7
+./starmeteo -forecast:-10,40,0x4c,0x1,0x1,0x1,0x1,[1]
+                       1  2  3    5   5   6   7    8
   1 temp min
   2 temp max
   3 "fixe" journee entiere
@@ -596,4 +597,5 @@ if __name__ == "__main__":
   5 matinee
   6 : apres midi
   7 : soiree
+  8 : pluie (direct value from 0 to 100)
 '''

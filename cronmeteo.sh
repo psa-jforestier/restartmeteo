@@ -12,7 +12,7 @@ fi
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PATH=$PATH:$SCRIPT_DIR/bin
 # Days to get forecast (0 is today)
-DAYS=5
+DAYS=6
 ## Save forcast in a tmp file
 python3 forecast.py --backend $STARMETEO_BACKEND --latlong $STARMETEO_LATLONG --days $DAYS --output json > $STARMETEO_TMP
 ## Generate a readable forcast

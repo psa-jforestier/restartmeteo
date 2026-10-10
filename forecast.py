@@ -505,7 +505,7 @@ def main():
     )
     parser.add_argument("--output", "-o",
         help="Output format. Default \"starmeteo\"",
-        choices=["starmeteo", "json", "txt", "csv"],
+        choices=["starmeteo", "json", "txt", "csv", "starmeteo.py"],
         default="starmeteo"
     )
 
@@ -583,6 +583,18 @@ def main():
                 f"{i['rain']}"
              ) + " "
         print(smout)
+    elif (args.output == "starmeteo.py"):
+        smout = ""
+        for i in forecast:
+            smout = smout + (
+                f"--forecast {i['tmin']},{i['tmax']},"
+                f"{i['weathercode_day']['picto']:#x},"
+                f"{i['weathercode_q0']['picto']:#x},{i['weathercode_q1']['picto']:#x},"
+                f"{i['weathercode_q2']['picto']:#x},{i['weathercode_q3']['picto']:#x},"
+                f"{i['rain']}"
+                ) + " "
+        print(smout)
+    
 if __name__ == "__main__":
     main()
 '''

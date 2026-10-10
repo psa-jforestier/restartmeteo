@@ -7,6 +7,9 @@ def debug(verbose: bool, msg: str):
     if verbose:
         print(f"[DEBUG] {msg}")
 
+def warning(msg: str):
+    print(f"[WARN ] {msg}", file=sys.stderr)
+
 def error(msg: str):
     print(f"[ERROR] {msg}", file=sys.stderr)
 class BitField:
@@ -63,6 +66,8 @@ class BitField:
         """
     def pushN(self, nibblevalue:int) -> None:
         self.push(nibblevalue, 4)        
+    def pushB(self, bytevalue:int) -> None:
+        self.push(bytevalue, 8)
     def pull(self, length: int) -> int:
         """
         Pull 'length' bits from the current idx and update the idx.
@@ -84,9 +89,9 @@ class BitField:
         Nibble positions are numbered from 0.
         """
         if nibbleposition < 0:
-            raise ValueError("nibbleposition must be >= 0")
+            raise ValueError("index out of range")
         if nibbleposition * 4 + 4 > self.length:
-            raise ValueError("nibble write exceeds bitfield length")
+            raise ValueError("index out of range")
         bit_position = nibbleposition * 4
         self.set(bit_position, value & 0x0F, 4)
 
@@ -96,9 +101,9 @@ class BitField:
         Nibble positions are numbered from 0.
         """
         if nibbleposition < 0:
-            raise ValueError("nibbleposition must be >= 0")
+            raise ValueError("index out of range")
         if nibbleposition * 4 + 4 > self.length:
-            raise ValueError("nibble read exceeds bitfield length")
+            raise ValueError("index out of rangeh")
         bit_position = nibbleposition * 4
         return self.get(bit_position, 4)
     def set(self, position: int, value: int, length: int) -> None:
@@ -110,10 +115,10 @@ class BitField:
         """
 
         if position < 0:
-            raise ValueError("position must be >= 0")
+            raise ValueError("index out of range")
 
         if position + length > self.length:
-            raise ValueError("write exceeds bitfield length")
+            raise ValueError("index out of rangeh")
 
         for i in range(length):
             field_pos = position + i
@@ -135,10 +140,10 @@ class BitField:
         Bit 0 is the leftmost bit of the bitfield.
         """
         if position < 0:
-            raise ValueError("position must be >= 0")
+            raise ValueError("index out of range")
 
         if position + length > self.length:
-            raise ValueError("read exceeds bitfield length")
+            raise ValueError("index out of range")
 
         value = 0
 
@@ -154,15 +159,45 @@ class BitField:
 
         return value
 
-    def format(self, packed:int) -> str:
-        # return a string of bits ('0', '1') with a separator on each packed
+    def format(self, packed:int, base=2) -> str:
+        # return a string of bits (if base = 2) or hex digits (if base = 16) with a separator on 
+        # each packed.
         result = []
+
+        if (base == 16):
+            for i in range(0, self.length // 4):
+                if i>0 and i % packed == 0:
+                    result.append(' ')
+                if ((i*4)<= self.length):
+                    result.append(f"{self.get(i*4, 4):x}")
+                else:
+                    result.append("?")
+            if ((i*4) + 4 != self.length):
+                result.append("?")
+            
+        elif (base == 2):
+            for i in range(0, self.length):
+                if i>0 and i % packed == 0:
+                    result.append(' ')
+                result.append(str(self.get(i, 1)))
+        return ''.join(result)
+    
         for i in range(0, self.length, packed):
             if i > 0:
                 result.append(' ')
             for j in range(packed):
                 if i + j < self.length:
-                    result.append(str(self.get(i + j, 1)))
+                    if base == 2:
+                        result.append(str(self.get(i + j, 1)))
+                    elif base == 16:
+                        if j % 4 == 0 and j > 0:
+                            result.append(' ')
+                        if (i+j+4 < self.length):
+                            result.append(f"{self.get(i + j, 4):x}")
+                        else:
+                            result.append("?")
+                    else:
+                        raise ValueError("Unsupported base")
         return ''.join(result)
         
     def __str__(self) -> str:
@@ -170,7 +205,15 @@ class BitField:
             str(self.get(i, 1))
             for i in range(0, self.length)
         )
-    
+def sm_crc8(data: BitField, idxN:int, lengthN:int) -> int:
+    """
+    Compute the Starmeteo 8 bits crc for the given nibble index and length in nibbles.
+    """
+    crc = 0x07
+    for i in range(0,lengthN):
+        crc = crc + data.getN(idxN + i)
+    crc = crc & 0xff
+    return crc
 def sm_crcN(data: BitField, idxN:int, lengthN:int) -> int:
     """
     Compute the Starmeteo 4 bits crc for the given nibble index and length in nibbles.
@@ -180,6 +223,15 @@ def sm_crcN(data: BitField, idxN:int, lengthN:int) -> int:
         crc = crc + data.getN(idxN + i)
     crc = crc & 0x0f
     return crc
+
+def encode_temp(temp:int):
+    """
+    return the temperature nibbles (high, low)
+    """
+    temp = temp + 40
+    tenth = temp // 10
+    unit = temp % 10
+    return (tenth, unit)
 def asciitobit(ascii: str) -> BitField:
     """
     Convert a StarMeteo ASCII encoded string into a BitField.
@@ -194,8 +246,13 @@ def bittoascii(bits: BitField) -> str:
     """
     Convert a BitField into a StarMeteo ASCII encoded string.
     Each 6-bit pack is converted to a corresponding ASCII character.
+    If the bitfield length is not a multiple of 6, will raise an exception
     """
     ascii_chars = []
+    if bits.length % 6 != 0:
+        # Zero pad the last few bits to make it a multiple of 6
+        padding = 6 - (bits.length % 6)
+        raise ValueError("BitField length is not a multiple of 6.")
     for i in range(0, bits.length, 6):
         six_bits = bits.get(i, 6)
         ascii_chars.append(raw2char(six_bits))
@@ -288,36 +345,57 @@ def dumphex(data, blocksize=16):
         print(f"{ascii_part:<{blocksize}} | {offset:04X} | {hex_part}")
 
 
-def decode(verbose, data):
+def decode(verbose, data, fast=False):
     
     l = len(data)
-    print("length of ascii characters:", l)
-    print("expected number of bits:", l * 6)
 
     bits= asciitobit(data)
+    print("Hexa bitfield: ", bits.format(4, base=16))
     debug(verbose, f"BitField nibbles representation: {bits.format(4)}")
     frame_identifier = bits.getN(0)
-    print(f"Frame identifier: 0x{frame_identifier:0x}")
-    if (frame_identifier == 0xf):
-        import sm_time
-
-        sm_time.sm_decode_datetime(verbose, bits)
-    elif (frame_identifier == 0x4):
-        import sm_forecast
-        sm_forecast.sm_decode_forecast(verbose, bits)
-        pass
+    if (fast):
+        print(f"Frame identifier: 0x{frame_identifier:0x}", end="")
+        if (frame_identifier == 0xf):
+            print(": time frame", end="")
+            import sm_time
+            sm_time.sm_decode_datetime(verbose, bits, True)
+        elif (frame_identifier == 0x4):
+            print(": forecast frame", end="")
+        elif (frame_identifier == 0x0):
+            print(": long forecast frame", end="")
+        else:
+            print(": unknown frame", end="")
+        print()
     else:
-        print(" └ Unknown frame identifier. Attempt decoding (after frame identifier)")
-        print("   ├ Bit stream: "+str(bits)[4:])
-        print("   └ Per nibbles:")
-        # print bit data, after the identifier, by nibbles
-        for i in range(1, (bits.length + 3) // 4):
-            nibble = bits.getN(i)
-            print(f"Nibble {i:02}: 0x{nibble:01x} 0b{nibble:04b}")
-        print("   └ Per bytes :")
-        nb_bytes = (bits.length - 4 ) // 8
-        for i in range(nb_bytes):
-            b = bits.get(4 + i*8, 8)
-            print(f"Byte {i:02}: 0x{b:02x} 0b{b:08b}")
+        print("Length of ascii characters: ", l)
+        print("Expected number of bits: ", l * 6)
+            
+        print(f"Frame identifier: 0x{frame_identifier:0x}")
+        if (frame_identifier == 0xf):
+            import sm_time
+            sm_time.sm_decode_datetime(verbose, bits, False)
+        elif (frame_identifier == 0x4):
+            import sm_forecast
+            sm_forecast.sm_decode_forecast(verbose, bits)
+            pass
+        elif (frame_identifier == 0x0):
+            import sm_forecast
+            sm_forecast.sm_decode_forecast_long(verbose, bits)
+        elif (frame_identifier == 0xe):
+            import sm_forecast
+            sm_forecast.sm_decode_forecast_alert(verbose, bits)
+        else:
+            print(" └ Unknown frame identifier. Attempt decoding (after frame identifier)")
+            print("   ├ Bit stream: "+str(bits)[4:])
+            print("   └ Per nibbles:")
+            # print bit data, after the identifier, by nibbles
+            for i in range(1, (bits.length + 3) // 4):
+                nibble = bits.getN(i)
+                print(f"Nibble {i:02}: 0x{nibble:01x} 0b{nibble:04b}")
+            print("   └ Per bytes :")
+            nb_bytes = (bits.length - 4 ) // 8
+            for i in range(nb_bytes):
+                b = bits.get(4 + i*8, 8)
+                print(f"Byte {i:02}: 0x{b:02x} 0b{b:08b}")
     return
     

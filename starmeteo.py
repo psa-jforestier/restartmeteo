@@ -3,15 +3,48 @@
 
 import argparse
 import sys
+import re
 from datetime import datetime
 import sm_time
-import re
+import sm_forecast
 
 from sm_utils import debug, decode
 import sm_utils
 
 
+
+
 _USE_CURRENT_TIME = object()
+
+
+KNOWN_OPTIONS = {
+    "-h", "--help",
+    "-d", "--decode",
+    "-f", "--fast",
+    "-t", "--time",
+    "-fc", "--forecast",
+    "-a", "--area",
+    "-i", "--interval",
+    "--verbose",
+    "-n",
+}
+
+
+def normalize_forecast_args(argv):
+    """Accept forecast values that begin with '-' without treating them as flags."""
+    normalized = []
+    i = 0
+    while i < len(argv):
+        token = argv[i]
+        if token in {"-fc", "--forecast"} and i + 1 < len(argv):
+            next_token = argv[i + 1]
+            if next_token.startswith("-") and next_token not in KNOWN_OPTIONS:
+                normalized.append(f"{token}={next_token}")
+                i += 2
+                continue
+        normalized.append(token)
+        i += 1
+    return normalized
 
 
 def parse_datetime(value):
@@ -40,6 +73,12 @@ def main():
         metavar="DATA",
         help="Decode frame data from DATA or stdin.",
     )
+    parser.add_argument(
+            "-f",
+            "--fast",
+            action="store_true",
+            help="Faster way to decode (to be used with -d/--decode)",
+        )
     operation.add_argument(
         "-t",
         "--time",
@@ -48,6 +87,14 @@ def main():
         type=parse_datetime,
         metavar="DATETIME",
         help="Date-time in YYYY-MM-DD:hh:mm format (defaults to now).",
+    )
+    operation.add_argument(
+        "-fc",
+        "--forecast",
+        action="append",
+        nargs="+",
+        metavar="STRING",
+        help="Forecast value(s) : Tmin,Tmax,FullDayIcon,NightIcon,MorningIcon,AfternoonIcon,EveningIcon[,Rain] . Rain is optional, value from 0 to 100. Use --area to change default area.",
     )
     parser.add_argument(
         "-a",
@@ -65,32 +112,41 @@ def main():
     )
     parser.add_argument("--verbose", action="store_true", help="Enable debug output.")
     parser.add_argument("-n", action="store_true", help="Do not output the trailing newline.")
-    args = parser.parse_args()
-
+    args = parser.parse_args(normalize_forecast_args(sys.argv[1:]))
+    
+    if args.forecast is not None:
+        args.forecast = [value for group in args.forecast for value in group]
+    
     if args.decode is not None:
         data = args.decode if args.decode else sys.stdin.read()
         debug(args.verbose, f"Decoding data: <<{data}>>")
         sm_utils.decode(
             args.verbose,
-            data
+            data,
+            args.fast
         )
         pass
-    else:
+    if (args.time is not None):
         date_time = (
             datetime.now() if args.time is _USE_CURRENT_TIME else args.time
         )
         # split area by space or ,
-        areas = [int(a) for a in re.split(r'[\s,]+', args.area) if a]
+        areas = [int(a, 0) for a in re.split(r'[\s,]+', args.area) if a]
         encoded_data = sm_time.sm_encode_datetime(
                 date_time, 
                 areas, 
                 args.interval,
                 args.verbose)
-        
-        
         debug(args.verbose, f"<<Encoded data>>: <<{encoded_data}>>")
         print(encoded_data, end="" if args.n else "\n")
-        
+    if (args.forecast is not None):
+        args.area = int(args.area, 0)
+        encoded_data = sm_forecast.sm_encode_forecast(
+                args.forecast,
+                args.area,
+                args.verbose)
+        debug(args.verbose, f"<<Encoded forecast data>>: <<{encoded_data}>>")
+        print(encoded_data, end="" if args.n else "\n")
 
 
 if __name__ == "__main__":

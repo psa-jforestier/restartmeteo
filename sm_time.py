@@ -102,8 +102,10 @@ def sm_encode_datetime(dt, area=[75], interval=12, verbose=False):
 
   return ascii_datetime + bittoascii(areabits)
 
-def sm_decode_datetime(verbose, data: BitField):
-    print("└ Decoding a time frame")
+def sm_decode_datetime(verbose, data: BitField, fast):
+    valid = True
+    if not fast:
+        print("└ Decoding a time frame")
     debug(verbose, f"Bit pos | bit length | value")
     n1 = data.getN(1) # hour
     n2 = data.getN(2) # minute tens
@@ -140,29 +142,44 @@ def sm_decode_datetime(verbose, data: BitField):
     debug(verbose, f"32      | 4          | 0x{expected_crc:01x} : CRC")
     debug(verbose, f"Recomputed CRC: 0x{sum:0x}")
     debug(verbose, f"Expected CRC:   0x{expected_crc:0x}")
-    print(f"  ├ Date time: {year:04d}-{month:02d}-{day:02d} {hours:02d}:{minutes:02d}")
-    if sum != expected_crc:
-        print(f"  │ └ ⚠ CRC mismatch. Recomputed CRC: 0x{sum:0x}, Expected CRC: 0x{expected_crc:0x}")
+    if not fast:
+        print(f"  ├ Date time: {year:04d}-{month:02d}-{day:02d} {hours:02d}:{minutes:02d}")
+        if sum != expected_crc:
+            print(f"  │ └ ⚠ CRC mismatch. Recomputed CRC: 0x{sum:0x}, Expected CRC: 0x{expected_crc:0x}")
+            valid = False
+        else:
+            print(f"  │ └ CRC check passed (0x{sum:0x}).")
     else:
-        print(f"  │ └ CRC check passed (0x{sum:0x}).")
+        print(f" ; Date time: {year:04d}-{month:02d}-{day:02d} {hours:02d}:{minutes:02d}", end="") 
+        if sum != expected_crc:
+            print(f" ; ⚠ CRC mismatch. Recomputed CRC: 0x{sum:0x}, Expected CRC: 0x{expected_crc:0x}", end="")
+            valid = False
+        else:
+            print(f" ; CRC check passed (0x{sum:0x}).", end="")
+
     # Continue decoding other parts of the time frame if necessary
     pad1 = data.getN(9) # some nibble padding
     pad2 = data.getN(10) # 
     pad3 = data.getN(11) #
     debug(verbose, f"36      | 12          | 0x{pad1:01x}{pad2:01x}{pad3:01x} : padding nibbles")
-    print(f"  ├ Padding nibbles: 0x{pad1:01x}{pad2:01x}{pad3:01x}")
-    print(f"  └ Area block :")
+    if not fast:
+        print(f"  ├ Padding nibbles: 0x{pad1:01x}{pad2:01x}{pad3:01x}")
+        print(f"  └ Area block :")
     idx = data.setIdx(12*4) # set the index to the start of the area block
     interval = data.pull(5)
     debug(verbose, f"48      | 5           | {interval} : interval")
-    print(f"    ├ Interval: {interval}")
     nbarea = data.pull(5)
-    print(f"    ├ Number of areas: {nbarea}")
+    if not fast:
+        print(f"    ├ Interval: {interval}")
+        print(f"    ├ Number of areas: {nbarea}")
     debug(verbose, f"53      | 5           | {nbarea} : number of areas")
     debug(verbose, f"58      | {nbarea}*7={nbarea*7}    | area codes")
     for i in range(nbarea):
         area = data.pull(7)
-        print(f"    │ ├ Area {i:2}: {area:2}")
+        if not fast:
+            print(f"    │ ├ Area {i:2}: {area:2}")
+        else:
+            print(f" {area:2}", end="")
     # find alignment
     pos = 58 + (nbarea * 7)
     debug(verbose, f"Position after area : {pos}")
@@ -172,7 +189,8 @@ def sm_decode_datetime(verbose, data: BitField):
         alignvalue = data.pull(1)
         debug(verbose, f"{i+pos:3}     | 1           | {alignvalue} : alignment bit")
     const = data.pull(4)
-    print(f"    ├ Const: 0x{const:01x}")
+    if not fast:
+        print(f"    ├ Const: 0x{const:01x}")
     debug(verbose, f"{pos+align:3}     | 4           | 0x{const} : const")
     crc = data.pull(8) # this crc is in 8 bits
     debug(verbose, f"{pos+align+4:3}     | 8           | 0x{crc:02x} : 8b area CRC")
@@ -185,6 +203,7 @@ def sm_decode_datetime(verbose, data: BitField):
     debug(verbose, f"Recomputed area CRC: 0x{sum:02x}")
     if sum != crc:
         print(f"    ├ ⚠ Area CRC mismatch. Recomputed CRC: 0x{sum:02x}, Expected CRC: 0x{crc:02x}")
+        valid = False
     else:
         print(f"    ├ Area CRC check passed (0x{sum:02x}).")
     remaining_length = data.length - data.getIdx()
@@ -194,3 +213,4 @@ def sm_decode_datetime(verbose, data: BitField):
         print(f"      └ Remaining bits: 0b{remaining_bits:0{remaining_length}b} / 0x{remaining_bits:0{(remaining_length + 3) // 4}x}")
     else:
         print(f"    └ No remaining bits after CRC.")
+    return valid

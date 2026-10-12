@@ -113,6 +113,14 @@ L'afficheur contient alors :
 
 En mode debug, la station ne se synchronise pas. Mais quand on sort de ce mode (appui sur la touche SET), la station se remet en mode "écoute" et va recevoir les prochaines prévisions ou synchonisation horaire sans attendre le début de la prochaine heure.
 
+## Stations pris en charge
+
+| Modèle | Fonctionnalités | Commentaires |
+|--------|----------------|--------------|
+|WD9541F |Prévisions j+4||
+|WD4004F |Prévisions j+3|Fréquence 466,217MHz|
+|WD6003  |Prévisions j+5, probabilité de pluie ||
+
 ## Reste à faire
 
 Pour l'instant, les alertes météo ne sont pas gérées.

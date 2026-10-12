@@ -12,12 +12,9 @@ from sm_utils import debug, decode
 import sm_utils
 
 
-
-
 _USE_CURRENT_TIME = object()
 
-
-KNOWN_OPTIONS = {
+KNOWN_OPTIONS = { # not used anymore but keep just in case
     "-h", "--help",
     "-d", "--decode",
     "-f", "--fast",
@@ -29,13 +26,39 @@ KNOWN_OPTIONS = {
     "-n",
 }
 
-
-def normalize_forecast_args(argv):
-    """Accept forecast values that begin with '-' without treating them as flags."""
+def normalize_args(argv):
+    """Normalize arguments. Allow old style -something:value and value starting with a neg number (for forecast)"""
     normalized = []
     i = 0
     while i < len(argv):
         token = argv[i]
+        # handle old style options like "-something:value"
+        if (re.match(r"^--?[a-zA-Z]", token)):
+            if ":" in token:
+                option, value = token.split(":", 1)
+                normalized.append(f"{option}={value}")
+                i += 1
+                continue
+        if i < len(argv) - 1:
+            next_token = argv[i + 1]
+            # special case of value starting with a negative number (like --forecast -10,30,...)
+            if (re.match(r"^-[0-9]", next_token)):
+                normalized.append(f"{token}={next_token}")
+                i += 2
+                continue
+        normalized.append(token)
+        i += 1
+    return normalized
+    """Normalize attached time values and forecast values that begin with '-'."""
+    normalized = []
+    i = 0
+    while i < len(argv):
+        token = argv[i]
+        if token.startswith(("--time:", "-time:", "-t:")):
+            option, value = token.split(":", 1)
+            normalized.append(f"{option}={value}")
+            i += 1
+            continue
         if token in {"-fc", "--forecast"} and i + 1 < len(argv):
             next_token = argv[i + 1]
             if next_token.startswith("-") and next_token not in KNOWN_OPTIONS:
@@ -45,7 +68,6 @@ def normalize_forecast_args(argv):
         normalized.append(token)
         i += 1
     return normalized
-
 
 def parse_datetime(value):
     for date_format in ("%Y-%m-%d:%H:%M", 
@@ -59,29 +81,28 @@ def parse_datetime(value):
         "datetime must use YYYY-MM-DD:hh:mm or YYYY-MM-DD:hh:mm:ss format"
     )
 
-
 def main():
     parser = argparse.ArgumentParser(
         description="Encode or decode StarMeteo frames."
     )
     operation = parser.add_mutually_exclusive_group(required=True)
     operation.add_argument(
-        "-d",
         "--decode",
+        "-d",
         nargs="?",  
         const="",
         metavar="DATA",
         help="Decode frame data from DATA or stdin.",
     )
-    parser.add_argument(
-            "-f",
-            "--fast",
-            action="store_true",
-            help="Faster way to decode (to be used with -d/--decode)",
-        )
+    parser.add_argument(            
+        "--fast",
+        "-f",
+        action="store_true",
+        help="Faster way to decode (to be used with -d/--decode)",
+    )
     operation.add_argument(
-        "-t",
         "--time",
+        "-t", "-time",
         nargs="?",
         const=_USE_CURRENT_TIME,
         type=parse_datetime,
@@ -89,31 +110,35 @@ def main():
         help="Date-time in YYYY-MM-DD:hh:mm format (defaults to now).",
     )
     operation.add_argument(
-        "-fc",
         "--forecast",
+        "-fc", "-forecast",  
         action="append",
         nargs="+",
         metavar="STRING",
         help="Forecast value(s) : Tmin,Tmax,FullDayIcon,NightIcon,MorningIcon,AfternoonIcon,EveningIcon[,Rain] . Rain is optional, value from 0 to 100. Use --area to change default area.",
     )
     parser.add_argument(
-        "-a",
+        "--forecast-not-extended", "-fcne",
+        action="store_true", 
+        help="Do not use extended forecast frame (no rain)")
+    parser.add_argument(
         "--area",
+        "-a", "-areas", "-areaid",        
         metavar="AREAS",
         default="75",
         help="Comma-separated list of areas (for example: 75,92,95; default: 75).",
     )
     parser.add_argument(
-        "-i",
         "--interval",
+        "-i",        
         metavar="INTERVAL", 
         default="12", type=int,
         help="Interval in minutes (default: 12) for the weatherstation to wait for forecast.",
     )
     parser.add_argument("--verbose", action="store_true", help="Enable debug output.")
     parser.add_argument("-n", action="store_true", help="Do not output the trailing newline.")
-    args = parser.parse_args(normalize_forecast_args(sys.argv[1:]))
-    
+    args = parser.parse_args(normalize_args(sys.argv[1:]))
+
     if args.forecast is not None:
         args.forecast = [value for group in args.forecast for value in group]
     
@@ -144,6 +169,7 @@ def main():
         encoded_data = sm_forecast.sm_encode_forecast(
                 args.forecast,
                 args.area,
+                args.forecast_not_extended,
                 args.verbose)
         debug(args.verbose, f"<<Encoded forecast data>>: <<{encoded_data}>>")
         print(encoded_data, end="" if args.n else "\n")

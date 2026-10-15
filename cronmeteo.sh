@@ -19,6 +19,7 @@ python3 forecast.py --backend $STARMETEO_BACKEND --latlong $STARMETEO_LATLONG --
 python3 forecast.py --backend file $STARMETEO_TMP --days $DAYS --output txt
 ## Generate forcast for starmeteo
 prev=$(python3 forecast.py --backend file $STARMETEO_TMP --output starmeteo)
+echo "Forecast for starmeteo: $prev"
 sm_format=$(starmeteo $prev -areaid:$STARMETEO_AREA -quiet -rpitx)
 
 ## Send a first forecast

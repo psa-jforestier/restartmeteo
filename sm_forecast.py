@@ -239,8 +239,10 @@ def get_forecast_data_from_string(fcdata):
     else:
         forecast_data["Rain"] = None
     return forecast_data
-def sm_encode_forecast(forecast_values, area:int, verbose=False):
-    # Placeholder implementation for encoding forecast values
+def sm_encode_forecast(forecast_values, 
+                       area:int, 
+                       forecast_not_extended: bool = False,
+                       verbose=False):
     debug(verbose, f"Starting to encode forecast values: {forecast_values}")
     # check if we have to use long or short forecast frame, based
     # on the 1st forecast. It should contains Tmin,Tmax,FullDayIcon,NightIcon,MorningIcon,AfternoonIcon,EveningIcon
@@ -252,7 +254,10 @@ def sm_encode_forecast(forecast_values, area:int, verbose=False):
     if (fcdata[0].get('Rain') is None):
         frametype = 0x4 # short forecast frame
     else:
-        frametype = 0x0 # extended forecast frame
+        if (forecast_not_extended):
+            frametype = 0x4 # force short forecast frame
+        else:
+            frametype = 0x0 # extended forecast frame
     debug(verbose, f"Determined frame type: 0x{frametype:1x}")
     nbdays = len(forecast_values)
     debug(verbose, f"Number of forecast entries: Day+0 to Day+{nbdays}")

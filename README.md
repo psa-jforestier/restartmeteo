@@ -117,9 +117,10 @@ En mode debug, la station ne se synchronise pas. Mais quand on sort de ce mode (
 
 | Modèle | Fonctionnalités | Commentaires |
 |--------|----------------|--------------|
-|WD9541F |Prévisions j+4||
-|WD4004F |Prévisions j+3|Fréquence 466,217MHz|
-|WD6003  |Prévisions j+5, probabilité de pluie ||
+|WD9541F |Prévisions j+4|Opérationnel|
+|WD4004F |Prévisions j+3|Opérationnel, fréquence 466231250|
+|WD6000F|Prévisions j+5, probabilité de pluie |Opérationnel (https://github.com/psa-jforestier/restartmeteo/issues/1)|
+|WD6003  |Prévisions j+5, probabilité de pluie |Non opérationnel (https://github.com/psa-jforestier/restartmeteo/issues/2)|
 
 ## Reste à faire
 
